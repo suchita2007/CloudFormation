@@ -1,0 +1,45 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: ---
+  This template create the ec2 instance with SG,VPC,type of instance, Volume accept all data from the 
+          
+Metadata: 
+
+Parameters: 
+  Environment:
+    Description: Type env as dev/prod/qa/test
+    Type: String
+  TypeOfInstance:
+    Description: put the Type of instance
+    Type: String
+    Default: t2.micro
+    AllowedValues:
+      - t2.small
+      - t2.micro
+      - t2.nano
+    ConstraintDescription: must be a valid EC2 instance type.
+  AMIID: 
+    Description: put the AMI ID of instance
+    Type: String
+  TypeOfVpcId:
+    Description: put the VPC ID of instance where you want to lunch the instance
+    Type: String
+  TypeOfSubnetId:
+    Description: put the Subnet ID of instance where you want to lunch the instance
+    Type: String
+  SizeOfVolume:
+    Description: type the size of volume of an instance(10/20/30 Gb etc)
+    Type: String
+
+Mappings:
+  RegionMap:
+    us-east-1:
+      Ami: !Ref AMIID
+    us-east-2:
+    Ami: !Ref AMIID
+
+Conditions: 
+  !If [!Equal , value_if_true, value_if_false]
+
+Resources: 
+
+Outputs:
