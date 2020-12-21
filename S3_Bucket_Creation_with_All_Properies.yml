@@ -1,0 +1,33 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: ---
+  This CF Create a Bucket with All Properties such as website hosting CRR and Event Generation when Object is put 
+  inside the bucket.
+Parameters: 
+  EnvName:
+    Description: This is the name of Environment such as DEV/PROD/QA/TEST
+    Type: String
+  AccessControl1:
+    Description: Specify the access control for the Bucket such as Private | PublicRead | PublicReadWrite | AuthenticatedRead | LogDeliveryWrite | BucketOwnerRead | BucketOwnerFullControl 
+    Type: String
+  S3Region:
+    Description: This Specify the region us-east-1|us-east-2
+    Type: String
+  BucketNameParam:
+    Description: Specify the bucket Name
+    Type: String
+
+Conditions: 
+  CreateDevResources: !Equals [ !Ref S3Region, !Ref 'AWS::Region']
+
+Resources: 
+  s3Bucket:
+    Type: AWS::S3::Bucket
+    Condition: CreateDevResources
+    Properties: 
+      AccessControl: !Ref AccessControl1 
+      BucketName: !Join [ "-", [ !Ref EnvName, !Ref BucketNameParam ] ]
+      VersioningConfiguration:
+          Status: Enabled
+      WebsiteConfiguration: 
+          IndexDocument : index.html
+          ErrorDocument : error.html
