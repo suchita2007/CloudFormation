@@ -1,0 +1,160 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: ---
+  This template deploys a VPC, with public and private subnets in Availability Zones. 
+  and default routes for them in the private subnets.
+
+Parameters: 
+  EnvironmentName:
+    Description: An environment name that will be prefixed to resource names
+    Type: String
+
+  VpcCIDR:
+    Description: Please enter the IP range (CIDR notation) for this VPC
+    Type: String
+    Default: 10.192.0.0/16
+
+  PublicSubnetCIDR:
+    Description: Please enter the IP range (CIDR notation) for the public subnet in the first Availability Zone
+    Type: String
+    Default: 10.192.10.0/24
+
+  PrivateSubnetCIDR:
+    Description: Please enter the IP range (CIDR notation) for the private subnet in the first Availability Zone
+    Type: String
+    Default: 10.192.20.0/24
+
+Resources:
+  myVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCIDR
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: !Join [ "-", [ !Ref EnvironmentName, 'VPC' ] ]
+  igwName:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Join [ "-", [ !Ref EnvironmentName, 'Internet-Gateway' ] ]
+          
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref myVPC
+      InternetGatewayId: !Ref igwName
+
+  publicsubnetName:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [0, !GetAZs '' ]
+      VpcId: !Ref myVPC
+      CidrBlock: !Ref PublicSubnetCIDR
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Join [ "-", [ !Ref EnvironmentName, 'public-subnet-Az1' ] ]
+ 
+  routeTablepublic:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref myVPC
+      Tags:
+        - Key: Name
+          Value: !Join [ "-", [ !Ref EnvironmentName, 'RT-Public-Az1' ] ]
+
+  routePublic:
+    Type: AWS::EC2::Route
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref routeTablepublic
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref igwName
+
+  PublicSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref routeTablepublic
+      SubnetId: !Ref publicsubnetName
+
+  PrivateSubnetName:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref myVPC
+      AvailabilityZone: !Select [ 0, !GetAZs '' ]
+      CidrBlock: !Ref PrivateSubnetCIDR
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Join [ "-", [ !Ref EnvironmentName, 'private-subnet-Az1' ] ] 
+  routeTablePrivate:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref myVPC
+      Tags:
+        - Key: Name
+          Value: !Join [ "-", [ !Ref EnvironmentName, 'RT-Private-Az1' ] ]
+  
+  PrivateSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref routeTablePrivate
+      SubnetId: !Ref PrivateSubnetName
+  
+  NoIngressSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: "no-ingress-sg"
+      GroupDescription: "Security group with no ingress rule"
+      VpcId: !Ref myVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '22' 
+          ToPort: '22'
+          CidrIp: !Ref VpcCIDR
+
+  S3Endpoint:
+    Type: 'AWS::EC2::VPCEndpoint'
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action:
+              - 's3:GetObject'
+              - 's3:PutObject'
+            Resource:
+              - 'arn:aws:s3:::suchitawankhade1986/*'
+      RouteTableIds:
+        - !Ref routeTablePrivate  
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.s3'
+      VpcId: !Ref myVPC
+
+  InterfaceEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties: 
+      PolicyDocument: 
+        Statement:
+          - Action: "*"
+            Effect: Allow
+            Resource: "*"
+            Principal: "*"
+      PrivateDnsEnabled: true 
+     
+      SecurityGroupIds: 
+        - !Ref NoIngressSecurityGroup
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.ec2'
+      SubnetIds: 
+        - !Ref PrivateSubnetName
+      VpcEndpointType: Interface
+      VpcId: !Ref myVPC
+
+
+    
+  
+  
+  
+  
