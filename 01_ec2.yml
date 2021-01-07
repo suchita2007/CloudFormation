@@ -1,0 +1,22 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: simple dev ec2 creation using CF
+
+Resources: 
+  DevEC2: 
+    Type: AWS::EC2::Instance
+    Properties: 
+      KeyName: such123
+      DisableApiTermination: true
+      ImageId: 'ami-0be2609ba883822ec'
+      InstanceType: t2.micro
+      SecurityGroupIds:
+        - default
+      Tags:
+        - Key: Name
+          Value: Dev_EC2_Server
+        - Key: env
+          Value: prod
+'''
+Change sets it means we are changing the current stack Value
+in above example i had change tag value as key env: prod
+'''
